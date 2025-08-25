@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>溫濕度數據分析儀 - 專業版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         * {
@@ -213,10 +214,8 @@
 
     <script>
         let rawData = {};
-        let processedData = {};
         let chart = null;
         const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'];
-        const lineStyles = ['solid', 'dashed', 'dotted'];
 
         const fileInput = document.getElementById('fileInput');
         const fileList = document.getElementById('fileList');
@@ -253,10 +252,11 @@
                         x: {
                             type: 'time',
                             time: {
-                                unit: 'day', // 預設單位
+                                unit: 'day',
+                                tooltipFormat: 'yyyy/MM/dd HH:mm',
                                 displayFormats: {
-                                    hour: 'yyyy/MM/dd HH:mm',
-                                    day: 'yyyy/MM/dd',
+                                    hour: 'MM/DD HH:mm',
+                                    day: 'yyyy/MM/DD',
                                     month: 'yyyy/MM'
                                 }
                             },
@@ -294,7 +294,6 @@
             updateStatus('正在讀取檔案...', 'info');
             fileList.innerHTML = '';
             rawData = {};
-            processedData = {};
 
             try {
                 const parsePromises = Array.from(files).map(file => {
@@ -310,7 +309,7 @@
                                 if (validData.length === 0) {
                                     reject(new Error(`檔案 ${file.name} 中沒有找到有效的溫濕度數據`));
                                 } else {
-                                    rawData[file.name] = validData;
+                                    rawData[file.name] = validData.sort((a, b) => moment(a['Local Date Time']) - moment(b['Local Date Time']));
                                     resolve();
                                 }
                             },
@@ -329,7 +328,6 @@
                     fileList.appendChild(li);
                 });
 
-                processAllData();
                 updateChart();
 
             } catch (error) {
@@ -339,125 +337,103 @@
             }
         });
 
-        // 處理所有數據並根據時間間距分組
-        function processAllData() {
-            const intervalType = timeInterval.value;
-            processedData = {};
+        // 更新圖表
+        function updateChart() {
+            if (Object.keys(rawData).length === 0) return;
 
-            for (const fileName in rawData) {
-                const data = rawData[fileName];
-                let currentProcessedData = [];
+            const intervalType = timeInterval.value;
+            const datasets = [];
+            const files = Object.keys(rawData);
+
+            files.forEach((file, fileIndex) => {
+                const fileData = rawData[file];
+                const baseColor = colors[fileIndex % colors.length];
+
+                let processedData = [];
 
                 if (intervalType === 'monthly') {
-                    const monthlyGroups = data.reduce((acc, row) => {
-                        const date = new Date(row['Local Date Time']);
-                        const yearMonth = `${date.getFullYear()}-${date.getMonth()}`;
+                    const monthlyGroups = fileData.reduce((acc, row) => {
+                        const date = moment(row['Local Date Time']);
+                        const yearMonth = date.format('YYYY-MM');
                         if (!acc[yearMonth]) {
-                            acc[yearMonth] = { tempSum: 0, humidSum: 0, count: 0, firstDate: date };
+                            acc[yearMonth] = { tempSum: 0, humidSum: 0, count: 0 };
                         }
                         const temp = parseFloat(row['Ch.1[C]']);
                         const humid = parseFloat(row['Ch.2[%]']);
-                        if (!isNaN(temp)) acc[yearMonth].tempSum += temp;
-                        if (!isNaN(humid)) acc[yearMonth].humidSum += humid;
+                        if (!isNaN(temp)) { acc[yearMonth].tempSum += temp; }
+                        if (!isNaN(humid)) { acc[yearMonth].humidSum += humid; }
                         acc[yearMonth].count++;
                         return acc;
                     }, {});
 
-                    currentProcessedData = Object.keys(monthlyGroups).map(key => {
-                        const group = monthlyGroups[key];
-                        return {
-                            'Local Date Time': group.firstDate.toISOString(),
-                            'Ch.1[C]': group.count > 0 ? (group.tempSum / group.count) : null,
-                            'Ch.2[%]': group.count > 0 ? (group.humidSum / group.count) : null
-                        };
-                    });
+                    processedData = Object.keys(monthlyGroups).map(key => ({
+                        x: moment(key, 'YYYY-MM').toDate(),
+                        temp: monthlyGroups[key].tempSum / monthlyGroups[key].count,
+                        humid: monthlyGroups[key].humidSum / monthlyGroups[key].count
+                    }));
                 } else {
                     const interval = parseInt(intervalType);
-                    for (let i = 0; i < data.length; i += interval) {
+                    for (let i = 0; i < fileData.length; i += interval) {
                         let tempSum = 0, humidSum = 0;
                         let tempCount = 0, humidCount = 0;
                         
-                        for (let j = i; j < i + interval && j < data.length; j++) {
-                            const temp = parseFloat(data[j]['Ch.1[C]']);
-                            const humid = parseFloat(data[j]['Ch.2[%]']);
+                        for (let j = i; j < i + interval && j < fileData.length; j++) {
+                            const temp = parseFloat(fileData[j]['Ch.1[C]']);
+                            const humid = parseFloat(fileData[j]['Ch.2[%]']);
                             if (!isNaN(temp)) { tempSum += temp; tempCount++; }
                             if (!isNaN(humid)) { humidSum += humid; humidCount++; }
                         }
-
-                        currentProcessedData.push({
-                            'Local Date Time': data[i]['Local Date Time'],
-                            'Ch.1[C]': tempCount > 0 ? tempSum / tempCount : null,
-                            'Ch.2[%]': humidCount > 0 ? humidSum / humidCount : null
+                        processedData.push({
+                            x: moment(fileData[i]['Local Date Time']).toDate(),
+                            temp: tempCount > 0 ? tempSum / tempCount : null,
+                            humid: humidCount > 0 ? humidSum / humidCount : null
                         });
                     }
                 }
-                processedData[fileName] = currentProcessedData;
-            }
-        }
-
-        // 更新圖表
-        function updateChart() {
-            if (Object.keys(processedData).length === 0) return;
-
-            const datasets = [];
-            const files = Object.keys(processedData);
-            
-            files.forEach((file, fileIndex) => {
-                const fileData = processedData[file];
-                const baseColor = colors[fileIndex % colors.length];
-
+                
                 // 溫度數據集 (實線)
                 datasets.push({
                     label: `${file.replace('.csv', '')} - 溫度`,
-                    data: fileData.map(row => ({
-                        x: new Date(row['Local Date Time']), 
-                        y: parseFloat(row['Ch.1[C]'])
-                    })),
+                    data: processedData.map(d => ({ x: d.x, y: d.temp })),
                     borderColor: baseColor,
                     backgroundColor: baseColor + '20',
                     borderWidth: 3,
                     fill: false,
                     tension: 0.4,
-                    pointRadius: 3,
-                    pointHoverRadius: 6,
                     yAxisID: 'y-axis-temp'
                 });
 
                 // 濕度數據集 (虛線)
                 datasets.push({
                     label: `${file.replace('.csv', '')} - 濕度`,
-                    data: fileData.map(row => ({
-                        x: new Date(row['Local Date Time']),
-                        y: parseFloat(row['Ch.2[%]'])
-                    })),
+                    data: processedData.map(d => ({ x: d.x, y: d.humid })),
                     borderColor: baseColor,
                     backgroundColor: baseColor + '20',
                     borderWidth: 3,
                     fill: false,
                     tension: 0.4,
-                    pointRadius: 3,
-                    pointHoverRadius: 6,
-                    yAxisID: 'y-axis-humid',
-                    borderDash: [5, 5]
+                    borderDash: [5, 5],
+                    yAxisID: 'y-axis-humid'
                 });
             });
 
-            // 更新 Chart.js 的時間軸類型
+            // 更新時間軸單位
             let unit = 'day';
-            if (timeInterval.value === 'monthly') {
+            if (intervalType === 'monthly') {
                 unit = 'month';
-            } else if (parseInt(timeInterval.value) < 24) {
+            } else if (parseInt(intervalType) < 24) {
                 unit = 'hour';
             }
             chart.options.scales.x.time.unit = unit;
 
+            chart.data.labels = []; // 使用 x-axis 的 time type 時，不需設定 labels
             chart.data.datasets = datasets;
             chart.update('none');
         }
         
         // 匯出圖表功能
         exportButton.addEventListener('click', function() {
-            if (Object.keys(processedData).length === 0) {
+            if (Object.keys(rawData).length === 0) {
                 updateStatus('請先上傳檔案並產生圖表', 'error');
                 return;
             }
@@ -471,7 +447,6 @@
         // 事件監聽器
         timeInterval.addEventListener('change', function() {
             if (Object.keys(rawData).length > 0) {
-                processAllData();
                 updateChart();
             }
         });
