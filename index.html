@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>專業版溫濕度數據分析儀 (平移功能已修復)</title>
+    <title>專業版溫濕度數據分析儀 (穩定版)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/date-fns/2.28.0/date-fns.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-date-fns/2.0.0/chartjs-adapter-date-fns.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
@@ -136,7 +136,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🚀 專業版溫濕度數據分析儀 (平移功能已修復)</h1>
+        <h1>🚀 專業版溫濕度數據分析儀 (穩定版)</h1>
         
         <div class="controls">
             <div class="control-group">
@@ -184,303 +184,308 @@
     </div>
 
     <script>
-        // --- Global Variables & Chart Registration ---
-        let allFilesData = [];
-        let chart = null;
-        let datepickers = {};
-        Chart.register(ChartZoom);
+        // FIXED: Wrap the entire script in a DOMContentLoaded listener
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- Global Variables & Chart Registration ---
+            let allFilesData = [];
+            let chart = null;
+            let datepickers = {};
+            Chart.register(ChartZoom);
 
-        const colors = [
-            { temp: '#FF6B6B', hum: '#4ECDC4' }, { temp: '#F7DC6F', hum: '#45B7D1' },
-            { temp: '#FFA07A', hum: '#98D8C8' }, { temp: '#DDA0DD', hum: '#6A89CC' }
-        ];
+            const colors = [
+                { temp: '#FF6B6B', hum: '#4ECDC4' }, { temp: '#F7DC6F', hum: '#45B7D1' },
+                { temp: '#FFA07A', hum: '#98D8C8' }, { temp: '#DDA0DD', hum: '#6A89CC' }
+            ];
 
-        // --- DOM Elements ---
-        const fileInput = document.getElementById('fileInput');
-        const timeInterval = document.getElementById('timeInterval');
-        const exportBtn = document.getElementById('exportBtn');
-        const resetZoomBtn = document.getElementById('resetZoomBtn');
-        const status = document.getElementById('status');
-        const statsContainer = document.getElementById('statsContainer');
-        const statsGrid = document.getElementById('statsGrid');
-        const ctx = document.getElementById('chart').getContext('2d');
+            // --- DOM Elements ---
+            const fileInput = document.getElementById('fileInput');
+            const timeInterval = document.getElementById('timeInterval');
+            const exportBtn = document.getElementById('exportBtn');
+            const resetZoomBtn = document.getElementById('resetZoomBtn');
+            const status = document.getElementById('status');
+            const statsContainer = document.getElementById('statsContainer');
+            const statsGrid = document.getElementById('statsGrid');
+            const ctx = document.getElementById('chart').getContext('2d');
 
-        // --- Chart Initialization ---
-        function initChart() {
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: { datasets: [] }, // No labels property for time scale
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { intersect: false, mode: 'index' },
-                    plugins: {
-                        title: { display: true, text: '溫濕度變化比較圖', font: { size: 18, weight: 'bold' } },
-                        legend: { display: true, position: 'top' },
-                        zoom: {
-                            pan: { enabled: true, mode: 'x' },
-                            zoom: { wheel: { enabled: true }, mode: 'x' },
-                            onZoomComplete: updateStatistics,
-                            onPanComplete: updateStatistics
-                        }
-                    },
-                    scales: {
-                        x: {
-                            type: 'time', // FIXED: Changed from 'category' to 'time'
-                            time: {
-                                tooltipFormat: 'yyyy/MM/dd HH:mm',
-                                displayFormats: {
-                                    hour: 'MM/dd HH:mm',
-                                    day: 'yyyy/MM/dd',
-                                    month: 'yyyy/MM'
-                                }
-                            },
-                            title: { display: true, text: '時間' }
+            // --- Chart Initialization ---
+            function initChart() {
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: { datasets: [] },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { intersect: false, mode: 'index' },
+                        plugins: {
+                            title: { display: true, text: '溫濕度變化比較圖', font: { size: 18, weight: 'bold' } },
+                            legend: { display: true, position: 'top' },
+                            zoom: {
+                                pan: { enabled: true, mode: 'x' },
+                                zoom: { wheel: { enabled: true }, mode: 'x' },
+                                onZoomComplete: updateStatistics,
+                                onPanComplete: updateStatistics
+                            }
                         },
-                        yTemp: { type: 'linear', display: true, position: 'left', title: { display: true, text: '溫度 (°C)', color: 'var(--temp-color)' }, ticks: { color: 'var(--temp-color)' } },
-                        yHum: { type: 'linear', display: true, position: 'right', title: { display: true, text: '濕度 (%)', color: 'var(--hum-color)' }, ticks: { color: 'var(--hum-color)' }, grid: { drawOnChartArea: false } }
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: {
+                                    tooltipFormat: 'yyyy/MM/dd HH:mm',
+                                    displayFormats: {
+                                        hour: 'MM/dd HH:mm',
+                                        day: 'yyyy/MM/dd',
+                                        month: 'yyyy/MM'
+                                    }
+                                },
+                                title: { display: true, text: '時間' }
+                            },
+                            yTemp: { type: 'linear', display: true, position: 'left', title: { display: true, text: '溫度 (°C)', color: 'var(--temp-color)' }, ticks: { color: 'var(--temp-color)' } },
+                            yHum: { type: 'linear', display: true, position: 'right', title: { display: true, text: '濕度 (%)', color: 'var(--hum-color)' }, ticks: { color: 'var(--hum-color)' }, grid: { drawOnChartArea: false } }
+                        }
                     }
+                });
+            }
+            
+            function initDatepickers() {
+                const options = {
+                    dateFormat: "Y-m-d",
+                    locale: "zh_tw",
+                    onChange: () => processAndDrawChart(false)
+                };
+                datepickers.start = flatpickr("#startDate", options);
+                datepickers.end = flatpickr("#endDate", options);
+            }
+
+            function updateStatus(message, type = 'info') {
+                status.textContent = message;
+                status.className = `status ${type}`;
+            }
+
+            function filterDataByDate(data) {
+                const startDate = datepickers.start.selectedDates[0];
+                const endDate = datepickers.end.selectedDates[0];
+                if (!startDate || !endDate) return data;
+                endDate.setHours(23, 59, 59, 999);
+                return data.filter(row => {
+                    const rowDate = new Date(row['Local Date Time']);
+                    return rowDate >= startDate && rowDate <= endDate;
+                });
+            }
+            
+            function updateStatistics() {
+                if (!chart || !chart.data.datasets || chart.data.datasets.length === 0) {
+                    statsContainer.style.display = 'none';
+                    return;
                 }
-            });
-        }
-        
-        function initDatepickers() {
-            const options = {
-                dateFormat: "Y-m-d",
-                locale: "zh_tw",
-                onChange: () => processAndDrawChart(false)
-            };
-            datepickers.start = flatpickr("#startDate", options);
-            datepickers.end = flatpickr("#endDate", options);
-        }
 
-        function updateStatus(message, type = 'info') {
-            status.textContent = message;
-            status.className = `status ${type}`;
-        }
-
-        fileInput.addEventListener('change', async function(e) {
-            const files = e.target.files;
-            if (!files || files.length === 0) return;
-            updateStatus(`正在讀取 ${files.length} 個檔案...`, 'info');
-            const parsePromises = Array.from(files).map(parseFile);
-            try {
-                allFilesData = await Promise.all(parsePromises);
-                const totalRecords = allFilesData.reduce((sum, file) => sum + file.data.length, 0);
-                updateStatus(`成功讀取 ${allFilesData.length} 個檔案，共 ${totalRecords} 筆有效數據`, 'success');
-                const allDates = allFilesData.flatMap(f => f.data.map(d => new Date(d['Local Date Time'])));
-                const minDate = new Date(Math.min(...allDates));
-                const maxDate = new Date(Math.max(...allDates));
-                datepickers.start.setDate(minDate, false);
-                datepickers.end.setDate(maxDate, false);
-                processAndDrawChart(true);
-            } catch (error) {
-                updateStatus(error.message, 'error');
-            }
-        });
-
-        function filterDataByDate(data) {
-            const startDate = datepickers.start.selectedDates[0];
-            const endDate = datepickers.end.selectedDates[0];
-            if (!startDate || !endDate) return data;
-            endDate.setHours(23, 59, 59, 999);
-            return data.filter(row => {
-                const rowDate = new Date(row['Local Date Time']);
-                return rowDate >= startDate && rowDate <= endDate;
-            });
-        }
-        
-        function updateStatistics() {
-            if (!chart || !chart.data.datasets || chart.data.datasets.length === 0) {
-                statsContainer.style.display = 'none';
-                return;
-            }
-
-            const { min, max } = chart.scales.x;
-            if (typeof min === 'undefined' || typeof max === 'undefined') {
-                statsContainer.style.display = 'none';
-                return;
-            }
-
-            const statsByFile = {};
-
-            chart.data.datasets.forEach(dataset => {
-                const fileName = dataset.label.split(' - ')[0];
-                if (!statsByFile[fileName]) {
-                    statsByFile[fileName] = { name: fileName, temps: [], hums: [] };
+                const { min, max } = chart.scales.x;
+                if (typeof min === 'undefined' || typeof max === 'undefined') {
+                    statsContainer.style.display = 'none';
+                    return;
                 }
+
+                const statsByFile = {};
+
+                chart.data.datasets.forEach(dataset => {
+                    const fileName = dataset.label.split(' - ')[0];
+                    if (!statsByFile[fileName]) {
+                        statsByFile[fileName] = { name: fileName, temps: [], hums: [] };
+                    }
+                    
+                    const visibleData = dataset.data.filter(d => d.x >= min && d.x <= max);
+                    const visibleValues = visibleData.map(d => d.y).filter(v => v !== null && !isNaN(v));
+
+                    if (dataset.yAxisID === 'yTemp') {
+                        statsByFile[fileName].temps.push(...visibleValues);
+                    } else {
+                        statsByFile[fileName].hums.push(...visibleValues);
+                    }
+                });
+
+                statsGrid.innerHTML = '';
+
+                Object.values(statsByFile).forEach(fileStats => {
+                    const { name, temps, hums } = fileStats;
+                    if (temps.length === 0 && hums.length === 0) return;
+
+                    const getStats = (arr) => ({
+                        max: arr.length ? Math.max(...arr).toFixed(2) : 'N/A',
+                        min: arr.length ? Math.min(...arr).toFixed(2) : 'N/A',
+                        avg: arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : 'N/A',
+                    });
+
+                    const tempStats = getStats(temps);
+                    const humStats = getStats(hums);
+                    
+                    const card = document.createElement('div');
+                    card.className = 'stats-card';
+                    card.innerHTML = `
+                        <h3>${name}</h3>
+                        <p><span class="temp">溫度</span> - 
+                            最高: <span class="temp">${tempStats.max} °C</span>, 
+                            最低: <span class="temp">${tempStats.min} °C</span>, 
+                            平均: <span class="temp">${tempStats.avg} °C</span>
+                        </p>
+                        <p><span class="hum">濕度</span> - 
+                            最高: <span class="hum">${humStats.max} %</span>, 
+                            最低: <span class="hum">${humStats.min} %</span>, 
+                            平均: <span class="hum">${humStats.avg} %</span>
+                        </p>
+                    `;
+                    statsGrid.appendChild(card);
+                });
+
+                statsContainer.style.display = 'block';
+            }
+
+            function updateChart(dataToDraw, resetZoom = false) {
+                if (!chart) return;
                 
-                // FIXED: Handle data as objects {x, y}
-                const visibleData = dataset.data.filter(d => d.x >= min && d.x <= max);
-                const visibleValues = visibleData.map(d => d.y).filter(v => v !== null && !isNaN(v));
+                const datasets = [];
 
-                if (dataset.yAxisID === 'yTemp') {
-                    statsByFile[fileName].temps.push(...visibleValues);
+                dataToDraw.forEach((file, index) => {
+                    const colorPair = colors[index % colors.length];
+
+                    const tempData = file.processedData.map(row => ({
+                        x: new Date(row['Local Date Time']),
+                        y: row['Ch.1[C]']
+                    }));
+
+                    const humData = file.processedData.map(row => ({
+                        x: new Date(row['Local Date Time']),
+                        y: row['Ch.2[%]']
+                    }));
+
+                    datasets.push({
+                        label: `${file.name} - 溫度`, data: tempData,
+                        borderColor: colorPair.temp, backgroundColor: colorPair.temp + '33', borderWidth: 2.5, tension: 0.1, yAxisID: 'yTemp'
+                    });
+                    datasets.push({
+                        label: `${file.name} - 濕度`, data: humData,
+                        borderColor: colorPair.hum, backgroundColor: colorPair.hum + '33', borderWidth: 2.5, tension: 0.1, yAxisID: 'yHum'
+                    });
+                });
+                
+                chart.data.datasets = datasets;
+
+                if (resetZoom) chart.resetZoom('none');
+                chart.update('none');
+            }
+
+            function processAndDrawChart(resetZoom = false) {
+                if (allFilesData.length === 0) return;
+                const interval = parseInt(timeInterval.value);
+                
+                const dataToDraw = allFilesData.map(file => {
+                    const dateFilteredData = filterDataByDate(file.data);
+                    const processedData = processDataForFile({ data: dateFilteredData }, interval);
+                    return { name: file.name, processedData: processedData };
+                });
+                
+                updateChart(dataToDraw, resetZoom);
+                setTimeout(updateStatistics, 100); 
+            }
+            
+            function parseFile(file) {
+                return new Promise((resolve, reject) => {
+                    Papa.parse(file, {
+                        header: true, skipEmptyLines: true, dynamicTyping: true,
+                        complete: (results) => {
+                            const rawData = results.data.filter(row =>
+                                row['Local Date Time'] && typeof row['Ch.1[C]'] === 'number' && typeof row['Ch.2[%]'] === 'number'
+                            ).map(row => ({...row, dateTimeObj: new Date(row['Local Date Time'])}));
+                            if (rawData.length === 0) return reject(new Error(`檔案 "${file.name}" 中沒有有效的數據`));
+                            resolve({ name: file.name, data: rawData });
+                        },
+                        error: (err) => reject(new Error(`讀取檔案 "${file.name}" 失敗: ${err.message}`))
+                    });
+                });
+            }
+
+            function processDataForFile(fileData, interval) {
+                const rawData = fileData.data.sort((a,b) => a.dateTimeObj - b.dateTimeObj);
+                if (interval <= 24) {
+                    const processed = [];
+                    for (let i = 0; i < rawData.length; i += interval) { processed.push(rawData[i]); }
+                    return processed;
                 } else {
-                    statsByFile[fileName].hums.push(...visibleValues);
+                    const groups = {};
+                    rawData.forEach(row => {
+                        const date = row.dateTimeObj;
+                        let key;
+                        if (interval === 240) {
+                            const year = date.getFullYear();
+                            const dayOfYear = Math.floor((date - new Date(year, 0, 0)) / 86400000);
+                            key = `${year}-D10-${Math.floor(dayOfYear / 10)}`;
+                        } else {
+                            key = `${date.getFullYear()}-${date.getMonth()}`;
+                        }
+                        if (!groups[key]) {
+                            groups[key] = { 'Local Date Time': row['Local Date Time'], tempSum: 0, humSum: 0, count: 0 };
+                        }
+                        groups[key].tempSum += row['Ch.1[C]'];
+                        groups[key].humSum += row['Ch.2[%]'];
+                        groups[key].count++;
+                    });
+                    return Object.values(groups).map(g => ({
+                        'Local Date Time': g['Local Date Time'],
+                        'Ch.1[C]': g.tempSum / g.count,
+                        'Ch.2[%]': g.humSum / g.count,
+                    }));
+                }
+            }
+
+            function exportChart() {
+                const canvas = document.getElementById('chart');
+                const newCanvas = document.createElement('canvas');
+                newCanvas.width = canvas.width; newCanvas.height = canvas.height;
+                const newCtx = newCanvas.getContext('2d');
+                newCtx.fillStyle = '#FFFFFF'; newCtx.fillRect(0, 0, newCanvas.width, newCanvas.height);
+                newCtx.drawImage(canvas, 0, 0);
+                const image = newCanvas.toDataURL('image/jpeg', 1.0);
+                const link = document.createElement('a');
+                link.href = image;
+                link.download = `溫濕度分析圖_${new Date().toISOString().slice(0,10)}.jpg`;
+                link.click();
+            }
+            
+            // --- Attach Event Listeners ---
+            fileInput.addEventListener('change', async function(e) {
+                const files = e.target.files;
+                if (!files || files.length === 0) return;
+                updateStatus(`正在讀取 ${files.length} 個檔案...`, 'info');
+                const parsePromises = Array.from(files).map(parseFile);
+                try {
+                    allFilesData = await Promise.all(parsePromises);
+                    const totalRecords = allFilesData.reduce((sum, file) => sum + file.data.length, 0);
+                    updateStatus(`成功讀取 ${allFilesData.length} 個檔案，共 ${totalRecords} 筆有效數據`, 'success');
+                    
+                    const allDates = allFilesData.flatMap(f => f.data.map(d => d.dateTimeObj));
+                    if(allDates.length > 0) {
+                        const minDate = new Date(Math.min(...allDates));
+                        const maxDate = new Date(Math.max(...allDates));
+                        datepickers.start.setDate(minDate, false);
+                        datepickers.end.setDate(maxDate, false);
+                    }
+                    
+                    processAndDrawChart(true);
+                } catch (error) {
+                    updateStatus(error.message, 'error');
                 }
             });
-
-            statsGrid.innerHTML = '';
-
-            Object.values(statsByFile).forEach(fileStats => {
-                const { name, temps, hums } = fileStats;
-                if (temps.length === 0 && hums.length === 0) return;
-
-                const getStats = (arr) => ({
-                    max: arr.length ? Math.max(...arr).toFixed(2) : 'N/A',
-                    min: arr.length ? Math.min(...arr).toFixed(2) : 'N/A',
-                    avg: arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : 'N/A',
-                });
-
-                const tempStats = getStats(temps);
-                const humStats = getStats(hums);
-                
-                const card = document.createElement('div');
-                card.className = 'stats-card';
-                card.innerHTML = `
-                    <h3>${name}</h3>
-                    <p><span class="temp">溫度</span> - 
-                        最高: <span class="temp">${tempStats.max} °C</span>, 
-                        最低: <span class="temp">${tempStats.min} °C</span>, 
-                        平均: <span class="temp">${tempStats.avg} °C</span>
-                    </p>
-                    <p><span class="hum">濕度</span> - 
-                        最高: <span class="hum">${humStats.max} %</span>, 
-                        最低: <span class="hum">${humStats.min} %</span>, 
-                        平均: <span class="hum">${humStats.avg} %</span>
-                    </p>
-                `;
-                statsGrid.appendChild(card);
+            timeInterval.addEventListener('change', () => processAndDrawChart(true));
+            resetZoomBtn.addEventListener('click', () => {
+                if (chart) {
+                    chart.resetZoom();
+                    updateStatistics();
+                }
             });
+            exportBtn.addEventListener('click', exportChart);
 
-            statsContainer.style.display = 'block';
-        }
-
-        function updateChart(dataToDraw, resetZoom = false) {
-            if (!chart) return;
-            
-            const datasets = [];
-
-            dataToDraw.forEach((file, index) => {
-                const colorPair = colors[index % colors.length];
-
-                // FIXED: Convert data to {x, y} format for time scale
-                const tempData = file.processedData.map(row => ({
-                    x: new Date(row['Local Date Time']),
-                    y: row['Ch.1[C]']
-                }));
-
-                const humData = file.processedData.map(row => ({
-                    x: new Date(row['Local Date Time']),
-                    y: row['Ch.2[%]']
-                }));
-
-                datasets.push({
-                    label: `${file.name} - 溫度`, data: tempData,
-                    borderColor: colorPair.temp, backgroundColor: colorPair.temp + '33', borderWidth: 2.5, tension: 0.1, yAxisID: 'yTemp'
-                });
-                datasets.push({
-                    label: `${file.name} - 濕度`, data: humData,
-                    borderColor: colorPair.hum, backgroundColor: colorPair.hum + '33', borderWidth: 2.5, tension: 0.1, yAxisID: 'yHum'
-                });
-            });
-            
-            chart.data.datasets = datasets;
-
-            if (resetZoom) chart.resetZoom('none');
-            chart.update('none');
-        }
-
-        function processAndDrawChart(resetZoom = false) {
-            if (allFilesData.length === 0) return;
-            const interval = parseInt(timeInterval.value);
-            
-            const dataToDraw = allFilesData.map(file => {
-                const dateFilteredData = filterDataByDate(file.data);
-                const processedData = processDataForFile({ data: dateFilteredData }, interval);
-                return { name: file.name, processedData: processedData };
-            });
-            
-            updateChart(dataToDraw, resetZoom);
-            // Use setTimeout to ensure the chart has rendered before calculating stats
-            setTimeout(updateStatistics, 100); 
-        }
-        
-        // --- Event Listeners & Stubs ---
-        timeInterval.addEventListener('change', () => processAndDrawChart(true));
-        resetZoomBtn.addEventListener('click', () => {
-            if (chart) {
-                chart.resetZoom();
-                updateStatistics();
-            }
+            // --- Initialize the application ---
+            initChart();
+            initDatepickers();
         });
-        exportBtn.addEventListener('click', exportChart);
-
-        function exportChart() {
-            const canvas = document.getElementById('chart');
-            const newCanvas = document.createElement('canvas');
-            newCanvas.width = canvas.width; newCanvas.height = canvas.height;
-            const newCtx = newCanvas.getContext('2d');
-            newCtx.fillStyle = '#FFFFFF'; newCtx.fillRect(0, 0, newCanvas.width, newCanvas.height);
-            newCtx.drawImage(canvas, 0, 0);
-            const image = newCanvas.toDataURL('image/jpeg', 1.0);
-            const link = document.createElement('a');
-            link.href = image;
-            link.download = `溫濕度分析圖_${new Date().toISOString().slice(0,10)}.jpg`;
-            link.click();
-        }
-        function parseFile(file) {
-            return new Promise((resolve, reject) => {
-                Papa.parse(file, {
-                    header: true, skipEmptyLines: true, dynamicTyping: true,
-                    complete: (results) => {
-                        const rawData = results.data.filter(row =>
-                            row['Local Date Time'] && typeof row['Ch.1[C]'] === 'number' && typeof row['Ch.2[%]'] === 'number'
-                        ).map(row => ({...row, dateTimeObj: new Date(row['Local Date Time'])})); // Pre-convert to date object
-                        if (rawData.length === 0) return reject(new Error(`檔案 "${file.name}" 中沒有有效的數據`));
-                        resolve({ name: file.name, data: rawData });
-                    },
-                    error: (err) => reject(new Error(`讀取檔案 "${file.name}" 失敗: ${err.message}`))
-                });
-            });
-        }
-        function processDataForFile(fileData, interval) {
-            const rawData = fileData.data.sort((a,b) => a.dateTimeObj - b.dateTimeObj);
-            if (interval <= 24) {
-                const processed = [];
-                for (let i = 0; i < rawData.length; i += interval) { processed.push(rawData[i]); }
-                return processed;
-            } else {
-                const groups = {};
-                rawData.forEach(row => {
-                    const date = row.dateTimeObj;
-                    let key;
-                    if (interval === 240) { // 10 days
-                        const year = date.getFullYear();
-                        const dayOfYear = Math.floor((date - new Date(year, 0, 0)) / 86400000);
-                        key = `${year}-D10-${Math.floor(dayOfYear / 10)}`;
-                    } else { // monthly
-                        key = `${date.getFullYear()}-${date.getMonth()}`;
-                    }
-                    if (!groups[key]) {
-                        groups[key] = { 'Local Date Time': row['Local Date Time'], tempSum: 0, humSum: 0, count: 0 };
-                    }
-                    groups[key].tempSum += row['Ch.1[C]'];
-                    groups[key].humSum += row['Ch.2[%]'];
-                    groups[key].count++;
-                });
-                return Object.values(groups).map(g => ({
-                    'Local Date Time': g['Local Date Time'],
-                    'Ch.1[C]': g.tempSum / g.count,
-                    'Ch.2[%]': g.humSum / g.count,
-                }));
-            }
-        }
-
-        // --- Initialize the application ---
-        initChart();
-        initDatepickers();
     </script>
 </body>
 </html>
