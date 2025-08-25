@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>溫濕度數據分析儀 - 專業版</title>
+    <title>進階溫濕度數據分析儀</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         * {
@@ -13,14 +12,14 @@
             padding: 0;
             box-sizing: border-box;
         }
-
+        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
-
+        
         .container {
             max-width: 1400px;
             margin: 0 auto;
@@ -30,7 +29,7 @@
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(10px);
         }
-
+        
         h1 {
             text-align: center;
             color: #2c3e50;
@@ -41,7 +40,7 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-
+        
         .controls {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -51,20 +50,21 @@
             background: rgba(255, 255, 255, 0.8);
             border-radius: 15px;
             border: 2px solid rgba(102, 126, 234, 0.2);
+            align-items: end;
         }
-
+        
         .control-group {
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
-
+        
         label {
             font-weight: 600;
             color: #2c3e50;
             font-size: 14px;
         }
-
+        
         input[type="file"] {
             padding: 12px;
             border: 2px dashed #667eea;
@@ -73,42 +73,40 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-
+        
         input[type="file"]:hover {
             border-color: #764ba2;
             background: rgba(118, 75, 162, 0.05);
         }
         
-        button {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 10px;
-            background: #667eea;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        button:hover {
-            background: #5b69c7;
-        }
-
-        select, input[type="file"] {
-            padding: 10px;
+        select, button {
+            padding: 12px;
             border: 2px solid rgba(102, 126, 234, 0.3);
             border-radius: 8px;
             background: white;
             font-size: 14px;
-            transition: border-color 0.3s ease;
+            transition: all 0.3s ease;
+            cursor: pointer;
         }
-
+        
         select:focus {
             outline: none;
             border-color: #667eea;
         }
 
+        button {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+            border-color: #667eea;
+        }
+
+        button:hover {
+            background: #5a6fd5;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
         .chart-container {
             position: relative;
             height: 600px;
@@ -126,47 +124,39 @@
             border-radius: 10px;
             font-weight: 500;
         }
-
+        
         .status.info {
             background: rgba(52, 152, 219, 0.1);
             color: #2980b9;
             border: 1px solid rgba(52, 152, 219, 0.3);
         }
-
+        
         .status.success {
             background: rgba(46, 204, 113, 0.1);
             color: #27ae60;
             border: 1px solid rgba(46, 204, 113, 0.3);
         }
-
+        
         .status.error {
             background: rgba(231, 76, 60, 0.1);
             color: #c0392b;
             border: 1px solid rgba(231, 76, 60, 0.3);
         }
-
-        .file-list {
-            margin-top: 10px;
-            font-size: 14px;
-            color: #555;
-            list-style-type: none;
-            padding: 0;
-        }
-
+        
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
                 margin: 10px;
             }
-
+            
             h1 {
                 font-size: 2em;
             }
-
+            
             .controls {
                 grid-template-columns: 1fr;
             }
-
+            
             .chart-container {
                 height: 400px;
                 padding: 15px;
@@ -176,13 +166,12 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 溫濕度數據分析儀 - 專業版</h1>
-
+        <h1>🌡️ 進階溫濕度數據分析儀</h1>
+        
         <div class="controls">
             <div class="control-group">
                 <label for="fileInput">📁 選擇CSV檔案 (可多選)</label>
                 <input type="file" id="fileInput" accept=".csv" multiple />
-                <ul id="fileList" class="file-list"></ul>
             </div>
             
             <div class="control-group">
@@ -191,268 +180,267 @@
                     <option value="1">每小時</option>
                     <option value="2">每2小時</option>
                     <option value="6">每6小時</option>
+                    <option value="12">每12小時</option>
                     <option value="24" selected>每天</option>
-                    <option value="240">每10天</option>
-                    <option value="monthly">每月</option>
+                    <option value="240">10天平均</option>
+                    <option value="720">月平均</option>
                 </select>
             </div>
 
             <div class="control-group">
-                <label>🖼️ 圖表操作</label>
-                <button id="exportButton">匯出圖表為 JPG</button>
+                 <label> &nbsp; </label> <button id="exportBtn">🖼️ 匯出 JPG 檔</button>
             </div>
         </div>
-
+        
         <div id="status" class="status info">
-            請上傳一個或多個CSV檔案開始分析
+            請上傳CSV檔案開始分析
         </div>
-
+        
         <div class="chart-container">
             <canvas id="chart"></canvas>
         </div>
     </div>
 
     <script>
-        let rawData = {};
+        let allFilesData = [];
         let chart = null;
-        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'];
-
+        
+        const colors = [
+            { temp: '#FF6B6B', hum: '#4ECDC4' },
+            { temp: '#F7DC6F', hum: '#45B7D1' },
+            { temp: '#FFA07A', hum: '#98D8C8' },
+            { temp: '#DDA0DD', hum: '#6A89CC' }
+        ];
+        
         const fileInput = document.getElementById('fileInput');
-        const fileList = document.getElementById('fileList');
         const timeInterval = document.getElementById('timeInterval');
-        const exportButton = document.getElementById('exportButton');
+        const exportBtn = document.getElementById('exportBtn');
         const status = document.getElementById('status');
         const ctx = document.getElementById('chart').getContext('2d');
-
-        // 初始化圖表
+        
         function initChart() {
-            if (chart) chart.destroy();
             chart = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels: [],
-                    datasets: []
-                },
+                data: { labels: [], datasets: [] },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    },
+                    interaction: { intersect: false, mode: 'index' },
                     plugins: {
-                        title: {
-                            display: true,
-                            text: '溫濕度變化圖',
-                            font: { size: 18, weight: 'bold' }
-                        },
-                        legend: { display: true, position: 'top' }
+                        title: { display: true, text: '溫濕度變化比較圖', font: { size: 18, weight: 'bold' } },
+                        legend: { display: true, position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        const unit = context.dataset.yAxisID === 'yTemp' ? ' °C' : ' %';
+                                        label += context.parsed.y.toFixed(2) + unit;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
                     },
                     scales: {
-                        x: {
-                            type: 'time',
-                            time: {
-                                unit: 'day',
-                                tooltipFormat: 'yyyy/MM/dd HH:mm',
-                                displayFormats: {
-                                    hour: 'MM/DD HH:mm',
-                                    day: 'yyyy/MM/DD',
-                                    month: 'yyyy/MM'
-                                }
-                            },
-                            title: { display: true, text: '時間' }
-                        },
-                        y: {
-                            title: { display: true, text: '溫度 (°C)' },
+                        x: { display: true, title: { display: true, text: '時間' } },
+                        yTemp: {
+                            type: 'linear',
+                            display: true,
                             position: 'left',
-                            id: 'y-axis-temp'
+                            title: { display: true, text: '溫度 (°C)', color: '#E74C3C' },
+                            ticks: { color: '#E74C3C' }
                         },
-                        y1: {
-                            title: { display: true, text: '濕度 (%)' },
+                        yHum: {
+                            type: 'linear',
+                            display: true,
                             position: 'right',
-                            id: 'y-axis-humid',
-                            min: 0,
-                            max: 100,
+                            title: { display: true, text: '濕度 (%)', color: '#3498DB' },
+                            ticks: { color: '#3498DB' },
                             grid: { drawOnChartArea: false }
                         }
                     }
                 }
             });
         }
-
-        // 更新狀態顯示
+        
         function updateStatus(message, type = 'info') {
             status.textContent = message;
             status.className = `status ${type}`;
         }
 
-        // 處理檔案上傳
+        function parseFile(file) {
+            return new Promise((resolve, reject) => {
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    dynamicTyping: true,
+                    complete: (results) => {
+                        try {
+                            const rawData = results.data.filter(row =>
+                                row['Local Date Time'] &&
+                                typeof row['Ch.1[C]'] === 'number' &&
+                                typeof row['Ch.2[%]'] === 'number'
+                            );
+                            if (rawData.length === 0) {
+                                return reject(new Error(`檔案 "${file.name}" 中沒有有效的數據`));
+                            }
+                            resolve({ name: file.name, data: rawData });
+                        } catch (error) {
+                            reject(new Error(`處理檔案 "${file.name}" 失敗: ${error.message}`));
+                        }
+                    },
+                    error: (error) => reject(new Error(`讀取檔案 "${file.name}" 失敗: ${error.message}`))
+                });
+            });
+        }
+
         fileInput.addEventListener('change', async function(e) {
             const files = e.target.files;
-            if (files.length === 0) return;
-
-            updateStatus('正在讀取檔案...', 'info');
-            fileList.innerHTML = '';
-            rawData = {};
+            if (!files || files.length === 0) return;
+            
+            updateStatus(`正在讀取 ${files.length} 個檔案...`, 'info');
+            
+            const parsePromises = Array.from(files).map(parseFile);
 
             try {
-                const parsePromises = Array.from(files).map(file => {
-                    return new Promise((resolve, reject) => {
-                        Papa.parse(file, {
-                            header: true,
-                            skipEmptyLines: true,
-                            dynamicTyping: true,
-                            complete: function(results) {
-                                const validData = results.data.filter(row => {
-                                    return row['Local Date Time'] && !isNaN(parseFloat(row['Ch.1[C]'])) && !isNaN(parseFloat(row['Ch.2[%]']));
-                                });
-                                if (validData.length === 0) {
-                                    reject(new Error(`檔案 ${file.name} 中沒有找到有效的溫濕度數據`));
-                                } else {
-                                    rawData[file.name] = validData.sort((a, b) => moment(a['Local Date Time']) - moment(b['Local Date Time']));
-                                    resolve();
-                                }
-                            },
-                            error: function(error) {
-                                reject(new Error(`檔案 ${file.name} 讀取失敗：${error.message}`));
-                            }
-                        });
-                    });
-                });
-
-                await Promise.all(parsePromises);
-                updateStatus(`成功讀取 ${files.length} 個檔案`, 'success');
-                Array.from(files).forEach(file => {
-                    const li = document.createElement('li');
-                    li.textContent = `✅ ${file.name}`;
-                    fileList.appendChild(li);
-                });
-
-                updateChart();
-
+                allFilesData = await Promise.all(parsePromises);
+                const totalRecords = allFilesData.reduce((sum, file) => sum + file.data.length, 0);
+                updateStatus(`成功讀取 ${allFilesData.length} 個檔案，共 ${totalRecords} 筆有效數據`, 'success');
+                processAndDrawChart();
             } catch (error) {
-                updateStatus('檔案處理失敗：' + error.message, 'error');
-                rawData = {};
-                fileList.innerHTML = '';
+                updateStatus(error.message, 'error');
             }
         });
 
-        // 更新圖表
-        function updateChart() {
-            if (Object.keys(rawData).length === 0) return;
-
-            const intervalType = timeInterval.value;
-            const datasets = [];
-            const files = Object.keys(rawData);
-
-            files.forEach((file, fileIndex) => {
-                const fileData = rawData[file];
-                const baseColor = colors[fileIndex % colors.length];
-
-                let processedData = [];
-
-                if (intervalType === 'monthly') {
-                    const monthlyGroups = fileData.reduce((acc, row) => {
-                        const date = moment(row['Local Date Time']);
-                        const yearMonth = date.format('YYYY-MM');
-                        if (!acc[yearMonth]) {
-                            acc[yearMonth] = { tempSum: 0, humidSum: 0, count: 0 };
-                        }
-                        const temp = parseFloat(row['Ch.1[C]']);
-                        const humid = parseFloat(row['Ch.2[%]']);
-                        if (!isNaN(temp)) { acc[yearMonth].tempSum += temp; }
-                        if (!isNaN(humid)) { acc[yearMonth].humidSum += humid; }
-                        acc[yearMonth].count++;
-                        return acc;
-                    }, {});
-
-                    processedData = Object.keys(monthlyGroups).map(key => ({
-                        x: moment(key, 'YYYY-MM').toDate(),
-                        temp: monthlyGroups[key].tempSum / monthlyGroups[key].count,
-                        humid: monthlyGroups[key].humidSum / monthlyGroups[key].count
-                    }));
-                } else {
-                    const interval = parseInt(intervalType);
-                    for (let i = 0; i < fileData.length; i += interval) {
-                        let tempSum = 0, humidSum = 0;
-                        let tempCount = 0, humidCount = 0;
-                        
-                        for (let j = i; j < i + interval && j < fileData.length; j++) {
-                            const temp = parseFloat(fileData[j]['Ch.1[C]']);
-                            const humid = parseFloat(fileData[j]['Ch.2[%]']);
-                            if (!isNaN(temp)) { tempSum += temp; tempCount++; }
-                            if (!isNaN(humid)) { humidSum += humid; humidCount++; }
-                        }
-                        processedData.push({
-                            x: moment(fileData[i]['Local Date Time']).toDate(),
-                            temp: tempCount > 0 ? tempSum / tempCount : null,
-                            humid: humidCount > 0 ? humidSum / humidCount : null
-                        });
-                    }
+        function processDataForFile(fileData, interval) {
+            const rawData = fileData.data;
+            if (interval <= 24) { // 逐點取樣
+                const processed = [];
+                for (let i = 0; i < rawData.length; i += interval) {
+                    processed.push(rawData[i]);
                 }
-                
-                // 溫度數據集 (實線)
-                datasets.push({
-                    label: `${file.replace('.csv', '')} - 溫度`,
-                    data: processedData.map(d => ({ x: d.x, y: d.temp })),
-                    borderColor: baseColor,
-                    backgroundColor: baseColor + '20',
-                    borderWidth: 3,
-                    fill: false,
-                    tension: 0.4,
-                    yAxisID: 'y-axis-temp'
+                return processed;
+            } else { // 時間區段平均
+                const groups = {};
+                rawData.forEach(row => {
+                    const date = new Date(row['Local Date Time']);
+                    let key;
+                    if (interval === 240) { // 10天平均
+                        const year = date.getFullYear();
+                        const dayOfYear = Math.floor((date - new Date(year, 0, 0)) / 86400000);
+                        const period = Math.floor(dayOfYear / 10);
+                        key = `${year}-D10-${period}`;
+                    } else { // 月平均 (interval 720)
+                        key = `${date.getFullYear()}-${date.getMonth()}`;
+                    }
+
+                    if (!groups[key]) {
+                        groups[key] = {
+                            date: date,
+                            tempSum: 0,
+                            humSum: 0,
+                            count: 0
+                        };
+                    }
+                    groups[key].tempSum += row['Ch.1[C]'];
+                    groups[key].humSum += row['Ch.2[%]'];
+                    groups[key].count++;
                 });
 
-                // 濕度數據集 (虛線)
+                return Object.values(groups).map(g => ({
+                    'Local Date Time': g.date,
+                    'Ch.1[C]': g.tempSum / g.count,
+                    'Ch.2[%]': g.humSum / g.count,
+                })).sort((a,b) => new Date(a['Local Date Time']) - new Date(b['Local Date Time']));
+            }
+        }
+        
+        function updateChart() {
+            if (!chart || allFilesData.length === 0) return;
+            
+            const interval = parseInt(timeInterval.value);
+            const datasets = [];
+            let commonLabels = [];
+            
+            allFilesData.forEach((file, index) => {
+                const processedData = processDataForFile(file, interval);
+                if(index === 0) { // 以第一個檔案的時間軸為基準
+                     commonLabels = processedData.map(row => {
+                        const date = new Date(row['Local Date Time']);
+                        if (interval === 720) return date.toLocaleString('zh-TW', { year: 'numeric', month: 'long' });
+                        if (interval === 240) return `始於 ${date.toLocaleDateString('zh-TW')}`;
+                        return date.toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    });
+                }
+
+                const colorPair = colors[index % colors.length];
+
                 datasets.push({
-                    label: `${file.replace('.csv', '')} - 濕度`,
-                    data: processedData.map(d => ({ x: d.x, y: d.humid })),
-                    borderColor: baseColor,
-                    backgroundColor: baseColor + '20',
-                    borderWidth: 3,
+                    label: `${file.name} - 溫度`,
+                    data: processedData.map(row => row['Ch.1[C]']),
+                    borderColor: colorPair.temp,
+                    backgroundColor: colorPair.temp + '33', // 33 for ~20% opacity
+                    borderWidth: 2.5,
                     fill: false,
-                    tension: 0.4,
-                    borderDash: [5, 5],
-                    yAxisID: 'y-axis-humid'
+                    tension: 0.1,
+                    yAxisID: 'yTemp'
+                });
+
+                datasets.push({
+                    label: `${file.name} - 濕度`,
+                    data: processedData.map(row => row['Ch.2[%]']),
+                    borderColor: colorPair.hum,
+                    backgroundColor: colorPair.hum + '33',
+                    borderWidth: 2.5,
+                    fill: false,
+                    tension: 0.1,
+                    yAxisID: 'yHum'
                 });
             });
-
-            // 更新時間軸單位
-            let unit = 'day';
-            if (intervalType === 'monthly') {
-                unit = 'month';
-            } else if (parseInt(intervalType) < 24) {
-                unit = 'hour';
-            }
-            chart.options.scales.x.time.unit = unit;
-
-            chart.data.labels = []; // 使用 x-axis 的 time type 時，不需設定 labels
+            
+            chart.data.labels = commonLabels;
             chart.data.datasets = datasets;
             chart.update('none');
         }
         
-        // 匯出圖表功能
-        exportButton.addEventListener('click', function() {
-            if (Object.keys(rawData).length === 0) {
-                updateStatus('請先上傳檔案並產生圖表', 'error');
-                return;
-            }
-            const link = document.createElement('a');
-            link.href = chart.toBase64Image('image/jpeg', 1);
-            link.download = '溫濕度數據圖表.jpeg';
-            link.click();
-            updateStatus('圖表已匯出', 'success');
-        });
-
-        // 事件監聽器
-        timeInterval.addEventListener('change', function() {
-            if (Object.keys(rawData).length > 0) {
+        function processAndDrawChart() {
+             if (allFilesData.length > 0) {
                 updateChart();
             }
-        });
+        }
 
-        // 頁面載入時初始化
+        function exportChart() {
+            // 建立一個新的 canvas 並填滿白色背景
+            const canvas = document.getElementById('chart');
+            const newCanvas = document.createElement('canvas');
+            newCanvas.width = canvas.width;
+            newCanvas.height = canvas.height;
+            const newCtx = newCanvas.getContext('2d');
+            newCtx.fillStyle = '#FFFFFF';
+            newCtx.fillRect(0, 0, newCanvas.width, newCanvas.height);
+            
+            // 將原始圖表繪製到新的 canvas 上
+            newCtx.drawImage(canvas, 0, 0);
+
+            // 匯出新 canvas 的內容
+            const image = newCanvas.toDataURL('image/jpeg', 1.0);
+            const link = document.createElement('a');
+            link.href = image;
+            link.download = `溫濕度分析圖_${new Date().toISOString().slice(0,10)}.jpg`;
+            link.click();
+        }
+
+        // 事件監聽器
+        timeInterval.addEventListener('change', processAndDrawChart);
+        exportBtn.addEventListener('click', exportChart);
+        
+        // 初始化
         initChart();
+        updateStatus('請上傳CSV檔案開始分析', 'info');
     </script>
 </body>
 </html>
