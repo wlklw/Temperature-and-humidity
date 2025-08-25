@@ -175,7 +175,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 數據分析儀 - 專業版</h1>
+        <h1>📊 溫濕度數據分析儀 - 專業版</h1>
 
         <div class="controls">
             <div class="control-group">
@@ -215,8 +215,8 @@
         let rawData = {};
         let processedData = {};
         let chart = null;
-        let availableSeries = [];
         const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'];
+        const lineStyles = ['solid', 'dashed', 'dotted'];
 
         const fileInput = document.getElementById('fileInput');
         const fileList = document.getElementById('fileList');
@@ -251,6 +251,15 @@
                     },
                     scales: {
                         x: {
+                            type: 'time',
+                            time: {
+                                unit: 'day', // 預設單位
+                                displayFormats: {
+                                    hour: 'yyyy/MM/dd HH:mm',
+                                    day: 'yyyy/MM/dd',
+                                    month: 'yyyy/MM'
+                                }
+                            },
                             title: { display: true, text: '時間' }
                         },
                         y: {
@@ -262,7 +271,9 @@
                             title: { display: true, text: '濕度 (%)' },
                             position: 'right',
                             id: 'y-axis-humid',
-                            grid: { drawOnChartArea: false } // 只繪製左側網格線
+                            min: 0,
+                            max: 100,
+                            grid: { drawOnChartArea: false }
                         }
                     }
                 }
@@ -338,17 +349,11 @@
                 let currentProcessedData = [];
 
                 if (intervalType === 'monthly') {
-                    // 月平均計算
                     const monthlyGroups = data.reduce((acc, row) => {
                         const date = new Date(row['Local Date Time']);
                         const yearMonth = `${date.getFullYear()}-${date.getMonth()}`;
                         if (!acc[yearMonth]) {
-                            acc[yearMonth] = {
-                                tempSum: 0,
-                                humidSum: 0,
-                                count: 0,
-                                firstDate: date
-                            };
+                            acc[yearMonth] = { tempSum: 0, humidSum: 0, count: 0, firstDate: date };
                         }
                         const temp = parseFloat(row['Ch.1[C]']);
                         const humid = parseFloat(row['Ch.2[%]']);
@@ -362,12 +367,11 @@
                         const group = monthlyGroups[key];
                         return {
                             'Local Date Time': group.firstDate.toISOString(),
-                            'Ch.1[C]': (group.tempSum / group.count).toFixed(2),
-                            'Ch.2[%]': (group.humidSum / group.count).toFixed(2)
+                            'Ch.1[C]': group.count > 0 ? (group.tempSum / group.count) : null,
+                            'Ch.2[%]': group.count > 0 ? (group.humidSum / group.count) : null
                         };
                     });
                 } else {
-                    // 固定時間間距平均計算
                     const interval = parseInt(intervalType);
                     for (let i = 0; i < data.length; i += interval) {
                         let tempSum = 0, humidSum = 0;
@@ -382,8 +386,8 @@
 
                         currentProcessedData.push({
                             'Local Date Time': data[i]['Local Date Time'],
-                            'Ch.1[C]': tempCount > 0 ? (tempSum / tempCount).toFixed(2) : null,
-                            'Ch.2[%]': humidCount > 0 ? (humidSum / humidCount).toFixed(2) : null
+                            'Ch.1[C]': tempCount > 0 ? tempSum / tempCount : null,
+                            'Ch.2[%]': humidCount > 0 ? humidSum / humidCount : null
                         });
                     }
                 }
@@ -396,25 +400,17 @@
             if (Object.keys(processedData).length === 0) return;
 
             const datasets = [];
-            let allLabels = [];
             const files = Object.keys(processedData);
             
-            // 組合所有檔案的標籤，並排序以確保時間軸正確
-            files.forEach(file => {
-                const labels = processedData[file].map(row => row['Local Date Time']);
-                allLabels = [...new Set([...allLabels, ...labels])];
-            });
-            allLabels.sort((a, b) => new Date(a) - new Date(b));
-
             files.forEach((file, fileIndex) => {
                 const fileData = processedData[file];
                 const baseColor = colors[fileIndex % colors.length];
 
-                // 溫度數據集
+                // 溫度數據集 (實線)
                 datasets.push({
                     label: `${file.replace('.csv', '')} - 溫度`,
                     data: fileData.map(row => ({
-                        x: row['Local Date Time'], 
+                        x: new Date(row['Local Date Time']), 
                         y: parseFloat(row['Ch.1[C]'])
                     })),
                     borderColor: baseColor,
@@ -427,11 +423,11 @@
                     yAxisID: 'y-axis-temp'
                 });
 
-                // 濕度數據集
+                // 濕度數據集 (虛線)
                 datasets.push({
                     label: `${file.replace('.csv', '')} - 濕度`,
                     data: fileData.map(row => ({
-                        x: row['Local Date Time'],
+                        x: new Date(row['Local Date Time']),
                         y: parseFloat(row['Ch.2[%]'])
                     })),
                     borderColor: baseColor,
@@ -442,17 +438,19 @@
                     pointRadius: 3,
                     pointHoverRadius: 6,
                     yAxisID: 'y-axis-humid',
-                    borderDash: [5, 5] // 用虛線區分濕度
+                    borderDash: [5, 5]
                 });
             });
 
-            chart.data.labels = allLabels.map(isoString => {
-                const date = new Date(isoString);
-                const options = timeInterval.value === 'monthly' ? 
-                    { year: 'numeric', month: 'short' } :
-                    { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-                return date.toLocaleString('zh-TW', options);
-            });
+            // 更新 Chart.js 的時間軸類型
+            let unit = 'day';
+            if (timeInterval.value === 'monthly') {
+                unit = 'month';
+            } else if (parseInt(timeInterval.value) < 24) {
+                unit = 'hour';
+            }
+            chart.options.scales.x.time.unit = unit;
+
             chart.data.datasets = datasets;
             chart.update('none');
         }
