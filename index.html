@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>專業版溫濕度數據分析儀</title>
+    <title>專業版溫濕度數據分析儀 (已修復)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/1.2.1/chartjs-plugin-zoom.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://npmcdn.com/flatpickr/dist/l10n/zh-tw.js"></script> <style>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/zh-tw.js"></script>
+
+    <style>
         :root {
             --primary-color-start: #667eea;
             --primary-color-end: #764ba2;
@@ -132,7 +134,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🚀 專業版溫濕度數據分析儀</h1>
+        <h1>🚀 專業版溫濕度數據分析儀 (已修復)</h1>
         
         <div class="controls">
             <div class="control-group">
@@ -213,12 +215,11 @@
                     plugins: {
                         title: { display: true, text: '溫濕度變化比較圖', font: { size: 18, weight: 'bold' } },
                         legend: { display: true, position: 'top' },
-                        tooltip: { /* ... tooltip callbacks ... */ },
                         zoom: {
                             pan: { enabled: true, mode: 'x' },
                             zoom: { wheel: { enabled: true }, mode: 'x' },
-                            onZoomComplete: updateStatsFromChart,
-                            onPanComplete: updateStatsFromChart
+                            onZoomComplete: updateStatistics, // REVISED: Call unified stats function
+                            onPanComplete: updateStatistics  // REVISED: Call unified stats function
                         }
                     },
                     scales: {
@@ -230,25 +231,21 @@
             });
         }
         
-        // --- Date Picker Initialization ---
         function initDatepickers() {
             const options = {
                 dateFormat: "Y-m-d",
                 locale: "zh_tw",
-                onChange: () => processAndDrawChart(false) // Don't reset zoom on date change
+                onChange: () => processAndDrawChart(false)
             };
             datepickers.start = flatpickr("#startDate", options);
             datepickers.end = flatpickr("#endDate", options);
         }
 
-        // --- UI & Status Updates ---
         function updateStatus(message, type = 'info') {
             status.textContent = message;
             status.className = `status ${type}`;
         }
 
-        // --- File Handling & Parsing ---
-        function parseFile(file) { /* ... same as before ... */ }
         fileInput.addEventListener('change', async function(e) {
             const files = e.target.files;
             if (!files || files.length === 0) return;
@@ -258,77 +255,86 @@
                 allFilesData = await Promise.all(parsePromises);
                 const totalRecords = allFilesData.reduce((sum, file) => sum + file.data.length, 0);
                 updateStatus(`成功讀取 ${allFilesData.length} 個檔案，共 ${totalRecords} 筆有效數據`, 'success');
-                // Set datepickers range based on loaded data
                 const allDates = allFilesData.flatMap(f => f.data.map(d => new Date(d['Local Date Time'])));
                 const minDate = new Date(Math.min(...allDates));
                 const maxDate = new Date(Math.max(...allDates));
                 datepickers.start.setDate(minDate, false);
                 datepickers.end.setDate(maxDate, false);
-                
-                processAndDrawChart(true); // Reset zoom on new file upload
+                processAndDrawChart(true);
             } catch (error) {
                 updateStatus(error.message, 'error');
             }
         });
 
-        // --- Data Processing & Filtering ---
-        function processDataForFile(fileData, interval) { /* ... same as before ... */ }
-
         function filterDataByDate(data) {
             const startDate = datepickers.start.selectedDates[0];
             const endDate = datepickers.end.selectedDates[0];
             if (!startDate || !endDate) return data;
-
-            // Set endDate to the end of the day
             endDate.setHours(23, 59, 59, 999);
-            
             return data.filter(row => {
                 const rowDate = new Date(row['Local Date Time']);
                 return rowDate >= startDate && rowDate <= endDate;
             });
         }
-
-        // --- Statistics Calculation & Display ---
-        function updateStatistics(dataToAnalyze) {
-            if (dataToAnalyze.length === 0) {
+        
+        // --- REVISED & UNIFIED STATISTICS FUNCTION ---
+        function updateStatistics() {
+            if (!chart || !chart.data.datasets || chart.data.datasets.length === 0) {
                 statsContainer.style.display = 'none';
                 return;
             }
 
-            statsGrid.innerHTML = ''; // Clear previous stats
-            
-            dataToAnalyze.forEach((file) => {
-                const temps = file.processedData.map(d => d['Ch.1[C]']).filter(v => v !== null);
-                const hums = file.processedData.map(d => d['Ch.2[%]']).filter(v => v !== null);
+            const { min, max } = chart.scales.x;
+            if (typeof min === 'undefined' || typeof max === 'undefined') {
+                statsContainer.style.display = 'none';
+                return;
+            }
 
+            const statsByFile = {};
+
+            chart.data.datasets.forEach(dataset => {
+                const fileName = dataset.label.split(' - ')[0];
+                if (!statsByFile[fileName]) {
+                    statsByFile[fileName] = { name: fileName, temps: [], hums: [] };
+                }
+
+                const visibleSlice = dataset.data.slice(min, max + 1).filter(v => v !== null && !isNaN(v));
+
+                if (dataset.yAxisID === 'yTemp') {
+                    statsByFile[fileName].temps.push(...visibleSlice);
+                } else {
+                    statsByFile[fileName].hums.push(...visibleSlice);
+                }
+            });
+
+            statsGrid.innerHTML = ''; // Clear previous stats
+
+            Object.values(statsByFile).forEach(fileStats => {
+                const { name, temps, hums } = fileStats;
                 if (temps.length === 0 && hums.length === 0) return;
 
-                const stats = {
-                    temp: {
-                        max: temps.length ? Math.max(...temps).toFixed(2) : 'N/A',
-                        min: temps.length ? Math.min(...temps).toFixed(2) : 'N/A',
-                        avg: temps.length ? (temps.reduce((a, b) => a + b, 0) / temps.length).toFixed(2) : 'N/A',
-                    },
-                    hum: {
-                        max: hums.length ? Math.max(...hums).toFixed(2) : 'N/A',
-                        min: hums.length ? Math.min(...hums).toFixed(2) : 'N/A',
-                        avg: hums.length ? (hums.reduce((a, b) => a + b, 0) / hums.length).toFixed(2) : 'N/A',
-                    }
-                };
+                const getStats = (arr) => ({
+                    max: arr.length ? Math.max(...arr).toFixed(2) : 'N/A',
+                    min: arr.length ? Math.min(...arr).toFixed(2) : 'N/A',
+                    avg: arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : 'N/A',
+                });
+
+                const tempStats = getStats(temps);
+                const humStats = getStats(hums);
                 
                 const card = document.createElement('div');
                 card.className = 'stats-card';
                 card.innerHTML = `
-                    <h3>${file.name}</h3>
+                    <h3>${name}</h3>
                     <p><span class="temp">溫度</span> - 
-                        最高: <span class="temp">${stats.temp.max} °C</span>, 
-                        最低: <span class="temp">${stats.temp.min} °C</span>, 
-                        平均: <span class="temp">${stats.temp.avg} °C</span>
+                        最高: <span class="temp">${tempStats.max} °C</span>, 
+                        最低: <span class="temp">${tempStats.min} °C</span>, 
+                        平均: <span class="temp">${tempStats.avg} °C</span>
                     </p>
                     <p><span class="hum">濕度</span> - 
-                        最高: <span class="hum">${stats.hum.max} %</span>, 
-                        最低: <span class="hum">${stats.hum.min} %</span>, 
-                        平均: <span class="hum">${stats.hum.avg} %</span>
+                        最高: <span class="hum">${humStats.max} %</span>, 
+                        最低: <span class="hum">${humStats.min} %</span>, 
+                        平均: <span class="hum">${humStats.avg} %</span>
                     </p>
                 `;
                 statsGrid.appendChild(card);
@@ -336,25 +342,7 @@
 
             statsContainer.style.display = 'block';
         }
-        
-        function updateStatsFromChart() {
-            if (!chart || allFilesData.length === 0) return;
-            const { min, max } = chart.scales.x;
-            const currentLabels = chart.data.labels.slice(min, max + 1);
-            
-            const dataForStats = allFilesData.map(file => {
-                const filteredRawData = filterDataByDate(file.data);
-                const processedData = filteredRawData.filter(d => {
-                    const dateLabel = new Date(d['Local Date Time']).toLocaleString('zh-TW', { /* format options */ });
-                    // This is a simplified check; a more robust method may be needed for average intervals
-                    return currentLabels.some(label => label.includes(new Date(d['Local Date Time']).getDate()));
-                });
-                return { name: file.name, processedData: processedData };
-            });
-            updateStatistics(dataForStats);
-        }
 
-        // --- Main Chart Drawing Logic ---
         function updateChart(dataToDraw, resetZoom = false) {
             if (!chart || dataToDraw.length === 0) return;
             
@@ -385,39 +373,41 @@
             chart.data.labels = commonLabels;
             chart.data.datasets = datasets;
 
-            if (resetZoom) chart.resetZoom();
+            if (resetZoom) chart.resetZoom('none'); // Use 'none' to prevent animation loop with event handlers
             chart.update('none');
         }
 
         function processAndDrawChart(resetZoom = false) {
             if (allFilesData.length === 0) return;
-
             const interval = parseInt(timeInterval.value);
             
-            const dataToAnalyze = allFilesData.map(file => {
+            const dataToDraw = allFilesData.map(file => {
                 const dateFilteredData = filterDataByDate(file.data);
                 const processedData = processDataForFile({ data: dateFilteredData }, interval);
                 return { name: file.name, processedData: processedData };
             });
             
-            updateChart(dataToAnalyze, resetZoom);
-            updateStatistics(dataToAnalyze); // Update stats for the whole visible range
+            updateChart(dataToDraw, resetZoom);
+            updateStatistics(); // REVISED: Call without arguments
         }
         
-        // --- Event Listeners & Final Initialization ---
+        // --- Event Listeners & Stubs ---
         timeInterval.addEventListener('change', () => processAndDrawChart(true));
-        resetZoomBtn.addEventListener('click', () => chart ? chart.resetZoom() : null);
-        exportBtn.addEventListener('click', () => { /* ... export logic ... */ });
+        resetZoomBtn.addEventListener('click', () => {
+            if (chart) {
+                chart.resetZoom();
+                updateStatistics(); // Also update stats on manual reset
+            }
+        });
+        exportBtn.addEventListener('click', exportChart);
 
-        // --- Helper function stubs from previous version ---
+        // Stubs for functions defined elsewhere
         function exportChart() {
             const canvas = document.getElementById('chart');
             const newCanvas = document.createElement('canvas');
-            newCanvas.width = canvas.width;
-            newCanvas.height = canvas.height;
+            newCanvas.width = canvas.width; newCanvas.height = canvas.height;
             const newCtx = newCanvas.getContext('2d');
-            newCtx.fillStyle = '#FFFFFF';
-            newCtx.fillRect(0, 0, newCanvas.width, newCanvas.height);
+            newCtx.fillStyle = '#FFFFFF'; newCtx.fillRect(0, 0, newCanvas.width, newCanvas.height);
             newCtx.drawImage(canvas, 0, 0);
             const image = newCanvas.toDataURL('image/jpeg', 1.0);
             const link = document.createElement('a');
@@ -425,7 +415,6 @@
             link.download = `溫濕度分析圖_${new Date().toISOString().slice(0,10)}.jpg`;
             link.click();
         }
-        // Simplified parseFile, ensure you have the full version from before
         function parseFile(file) {
             return new Promise((resolve, reject) => {
                 Papa.parse(file, {
@@ -441,12 +430,42 @@
                 });
             });
         }
-
+        function processDataForFile(fileData, interval) {
+            const rawData = fileData.data;
+            if (interval <= 24) {
+                const processed = [];
+                for (let i = 0; i < rawData.length; i += interval) { processed.push(rawData[i]); }
+                return processed;
+            } else {
+                const groups = {};
+                rawData.forEach(row => {
+                    const date = new Date(row['Local Date Time']);
+                    let key;
+                    if (interval === 240) { // 10 days
+                        const year = date.getFullYear();
+                        const dayOfYear = Math.floor((date - new Date(year, 0, 0)) / 86400000);
+                        key = `${year}-D10-${Math.floor(dayOfYear / 10)}`;
+                    } else { // monthly
+                        key = `${date.getFullYear()}-${date.getMonth()}`;
+                    }
+                    if (!groups[key]) {
+                        groups[key] = { date: date, tempSum: 0, humSum: 0, count: 0 };
+                    }
+                    groups[key].tempSum += row['Ch.1[C]'];
+                    groups[key].humSum += row['Ch.2[%]'];
+                    groups[key].count++;
+                });
+                return Object.values(groups).map(g => ({
+                    'Local Date Time': g.date,
+                    'Ch.1[C]': g.tempSum / g.count,
+                    'Ch.2[%]': g.humSum / g.count,
+                })).sort((a,b) => new Date(a['Local Date Time']) - new Date(b['Local Date Time']));
+            }
+        }
 
         // --- Initialize the application ---
         initChart();
         initDatepickers();
-
     </script>
 </body>
 </html>
