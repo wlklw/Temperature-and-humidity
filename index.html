@@ -7,7 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-moment/1.0.1/chartjs-adapter-moment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/1.2.1/chartjs-plugin-zoom.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -220,12 +221,20 @@
                             title: { display: true, text: '溫濕度變化比較圖', font: { size: 18, weight: 'bold' } },
                             legend: { display: true, position: 'top' },
                             zoom: {
-                                pan: { enabled: true, mode: 'x' },
-                                zoom: { wheel: { enabled: true }, mode: 'x' },
-                                onZoomComplete: updateStatistics,
-                                onPanComplete: updateStatistics
-                            }
-                        },
+                                pan: {
+            enabled: true,
+            mode: 'x',
+            modifierKey: null
+        },
+        zoom: {
+            wheel: { enabled: true },
+            pinch: { enabled: true },
+            mode: 'x'
+        },
+        onZoomComplete: updateStatistics,
+        onPanComplete: updateStatistics
+    }
+},
                         scales: {
                             x: {
                                 type: 'time',
