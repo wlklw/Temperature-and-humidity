@@ -237,16 +237,20 @@
 },
                         scales: {
                             x: {
-                                type: 'time',
-                                time: {
-                                    tooltipFormat: 'yyyy/MM/dd HH:mm',
-                                    displayFormats: {
-                                        hour: 'MM/dd HH:mm',
-                                        day: 'yyyy/MM/dd',
-                                        month: 'yyyy/MM'
-                                    }
-                                },
-                                title: { display: true, text: '時間' }
+    type: 'time',
+    time: {
+        tooltipFormat: 'YYYY/MM/DD HH:mm',
+        displayFormats: {
+            hour: 'YYYY/MM/DD',
+            day: 'YYYY/MM/DD',
+            week: 'YYYY/MM/DD',
+            month: 'YYYY/MM/DD',
+            year: 'YYYY/MM/DD'
+        },
+        unit: 'day'
+    },
+    title: { display: true, text: '時間' }
+}
                             },
                             yTemp: { type: 'linear', display: true, position: 'left', title: { display: true, text: '溫度 (°C)', color: 'var(--temp-color)' }, ticks: { color: 'var(--temp-color)' } },
                             yHum: { type: 'linear', display: true, position: 'right', title: { display: true, text: '濕度 (%)', color: 'var(--hum-color)' }, ticks: { color: 'var(--hum-color)' }, grid: { drawOnChartArea: false } }
