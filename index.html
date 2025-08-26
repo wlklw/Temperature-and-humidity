@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>專業版溫濕度數據分析儀 (穩定版)</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-moment/1.0.1/chartjs-adapter-moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-moment/1.0.1/chartjs-adapter-moment.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -63,6 +63,26 @@
             align-items: end;
         }
         .control-group { display: flex; flex-direction: column; gap: 10px; }
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .checkbox-item label {
+            font-size: 14px;
+            cursor: pointer;
+            margin: 0;
+        }
         label { font-weight: 600; font-size: 14px; }
         input, select, button {
             padding: 12px;
@@ -153,7 +173,7 @@
                 <input type="text" id="endDate" placeholder="選擇結束日期">
             </div>
             <div class="control-group">
-                <label for="timeInterval">⏱️ 時間間距</label>
+                <label for="timeInterval">⏱️ 時間間隔</label>
                 <select id="timeInterval">
                     <option value="1">每小時</option>
                     <option value="2">每2小時</option>
@@ -163,6 +183,19 @@
                     <option value="240">10天平均</option>
                     <option value="720">月平均</option>
                 </select>
+            </div>
+            <div class="control-group">
+                <label>📊 顯示選項</label>
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showTemp" checked>
+                        <label for="showTemp">顯示溫度</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showHum" checked>
+                        <label for="showHum">顯示濕度</label>
+                    </div>
+                </div>
             </div>
             <div class="control-group">
                  <label> &nbsp; </label>
@@ -206,6 +239,8 @@
             const status = document.getElementById('status');
             const statsContainer = document.getElementById('statsContainer');
             const statsGrid = document.getElementById('statsGrid');
+            const showTempCheckbox = document.getElementById('showTemp');
+            const showHumCheckbox = document.getElementById('showHum');
             const ctx = document.getElementById('chart').getContext('2d');
 
             // --- Chart Initialization ---
@@ -222,52 +257,65 @@
                             legend: { display: true, position: 'top' },
                             zoom: {
                                 pan: {
-            enabled: true,
-            mode: 'x',
-            modifierKey: null
-        },
-        zoom: {
-            wheel: { enabled: true },
-            pinch: { enabled: true },
-            mode: 'x'
-        },
-        onZoomComplete: updateStatistics,
-        onPanComplete: updateStatistics
-    }
-},
+                                    enabled: true,
+                                    mode: 'x',
+                                    modifierKey: null
+                                },
+                                zoom: {
+                                    wheel: { enabled: true },
+                                    pinch: { enabled: true },
+                                    mode: 'x'
+                                },
+                                onZoomComplete: updateStatistics,
+                                onPanComplete: updateStatistics
+                            }
+                        },
                         scales: {
                             x: {
-    type: 'time',
-    time: {
-        tooltipFormat: 'YYYY/MM/DD HH:mm',
-        displayFormats: {
-            hour: 'YYYY/MM/DD',
-            day: 'YYYY/MM/DD',
-            week: 'YYYY/MM/DD',
-            month: 'YYYY/MM/DD',
-            year: 'YYYY/MM/DD'
-        },
-        unit: 'day',
-        stepSize: 1
-    },
-    title: { display: true, text: '時間' }
+                                type: 'time',
+                                time: {
+                                    tooltipFormat: 'YYYY/MM/DD HH:mm',
+                                    displayFormats: {
+                                        hour: 'YYYY/MM/DD',
+                                        day: 'YYYY/MM/DD',
+                                        week: 'YYYY/MM/DD',
+                                        month: 'YYYY/MM/DD',
+                                        year: 'YYYY/MM/DD'
+                                    },
+                                    unit: 'day',
+                                    stepSize: 1
+                                },
+                                title: { display: true, text: '時間' }
                             },
-                            yTemp: { type: 'linear', display: true, position: 'left', title: { display: true, text: '溫度 (°C)', color: 'var(--temp-color)' }, ticks: { color: 'var(--temp-color)' } },
-                            yHum: { type: 'linear', display: true, position: 'right', title: { display: true, text: '濕度 (%)', color: 'var(--hum-color)' }, ticks: { color: 'var(--hum-color)' }, grid: { drawOnChartArea: false } }
+                            yTemp: { 
+                                type: 'linear', 
+                                display: true, 
+                                position: 'left', 
+                                title: { display: true, text: '溫度 (°C)', color: 'var(--temp-color)' }, 
+                                ticks: { color: 'var(--temp-color)' } 
+                            },
+                            yHum: { 
+                                type: 'linear', 
+                                display: true, 
+                                position: 'right', 
+                                title: { display: true, text: '濕度 (%)', color: 'var(--hum-color)' }, 
+                                ticks: { color: 'var(--hum-color)' }, 
+                                grid: { drawOnChartArea: false } 
+                            }
                         }
                     }
                 });
             }
             
             function initDatepickers() {
-                const options = {
-                    dateFormat: "Y-m-d",
-                    locale: "zh_tw",
-                    onChange: () => processAndDrawChart(false)
-                };
-                datepickers.start = flatpickr("#startDate", options);
-                datepickers.end = flatpickr("#endDate", options);
-            }
+    const options = {
+        dateFormat: "Y-m-d",
+        locale: "zh",
+        onChange: () => processAndDrawChart(false)
+    };
+    datepickers.start = flatpickr("#startDate", options);
+    datepickers.end = flatpickr("#endDate", options);
+}
 
             function updateStatus(message, type = 'info') {
                 status.textContent = message;
@@ -332,19 +380,28 @@
                     
                     const card = document.createElement('div');
                     card.className = 'stats-card';
-                    card.innerHTML = `
-                        <h3>${name}</h3>
-                        <p><span class="temp">溫度</span> - 
-                            最高: <span class="temp">${tempStats.max} °C</span>, 
-                            最低: <span class="temp">${tempStats.min} °C</span>, 
-                            平均: <span class="temp">${tempStats.avg} °C</span>
-                        </p>
-                        <p><span class="hum">濕度</span> - 
-                            最高: <span class="hum">${humStats.max} %</span>, 
-                            最低: <span class="hum">${humStats.min} %</span>, 
-                            平均: <span class="hum">${humStats.avg} %</span>
-                        </p>
-                    `;
+                    
+                    let content = `<h3>${name}</h3>`;
+                    
+                    if (showTempCheckbox.checked && temps.length > 0) {
+                        content += `
+                            <p><span class="temp">溫度</span> - 
+                                最高: <span class="temp">${tempStats.max} °C</span>, 
+                                最低: <span class="temp">${tempStats.min} °C</span>, 
+                                平均: <span class="temp">${tempStats.avg} °C</span>
+                            </p>`;
+                    }
+                    
+                    if (showHumCheckbox.checked && hums.length > 0) {
+                        content += `
+                            <p><span class="hum">濕度</span> - 
+                                最高: <span class="hum">${humStats.max} %</span>, 
+                                最低: <span class="hum">${humStats.min} %</span>, 
+                                平均: <span class="hum">${humStats.avg} %</span>
+                            </p>`;
+                    }
+                    
+                    card.innerHTML = content;
                     statsGrid.appendChild(card);
                 });
 
@@ -355,31 +412,52 @@
                 if (!chart) return;
                 
                 const datasets = [];
+                const showTemp = showTempCheckbox.checked;
+                const showHum = showHumCheckbox.checked;
 
                 dataToDraw.forEach((file, index) => {
                     const colorPair = colors[index % colors.length];
 
-                    const tempData = file.processedData.map(row => ({
-                        x: new Date(row['Local Date Time']),
-                        y: row['Ch.1[C]']
-                    }));
+                    if (showTemp) {
+                        const tempData = file.processedData.map(row => ({
+                            x: new Date(row['Local Date Time']),
+                            y: row['Ch.1[C]']
+                        }));
 
-                    const humData = file.processedData.map(row => ({
-                        x: new Date(row['Local Date Time']),
-                        y: row['Ch.2[%]']
-                    }));
+                        datasets.push({
+                            label: `${file.name} - 溫度`, 
+                            data: tempData,
+                            borderColor: colorPair.temp, 
+                            backgroundColor: colorPair.temp + '33', 
+                            borderWidth: 2.5, 
+                            tension: 0.1, 
+                            yAxisID: 'yTemp'
+                        });
+                    }
 
-                    datasets.push({
-                        label: `${file.name} - 溫度`, data: tempData,
-                        borderColor: colorPair.temp, backgroundColor: colorPair.temp + '33', borderWidth: 2.5, tension: 0.1, yAxisID: 'yTemp'
-                    });
-                    datasets.push({
-                        label: `${file.name} - 濕度`, data: humData,
-                        borderColor: colorPair.hum, backgroundColor: colorPair.hum + '33', borderWidth: 2.5, tension: 0.1, yAxisID: 'yHum'
-                    });
+                    if (showHum) {
+                        const humData = file.processedData.map(row => ({
+                            x: new Date(row['Local Date Time']),
+                            y: row['Ch.2[%]']
+                        }));
+
+                        datasets.push({
+                            label: `${file.name} - 濕度`, 
+                            data: humData,
+                            borderColor: colorPair.hum, 
+                            backgroundColor: colorPair.hum + '33', 
+                            borderWidth: 2.5, 
+                            tension: 0.1, 
+                            yAxisID: 'yHum'
+                        });
+                    }
                 });
                 
                 chart.data.datasets = datasets;
+                
+                // 更新 y 軸顯示/隱藏
+                chart.options.scales.yTemp.display = showTemp;
+                chart.options.scales.yHum.display = showHum;
 
                 if (resetZoom) chart.resetZoom('none');
                 chart.update('none');
@@ -486,7 +564,11 @@
                     updateStatus(error.message, 'error');
                 }
             });
+            
             timeInterval.addEventListener('change', () => processAndDrawChart(true));
+            showTempCheckbox.addEventListener('change', () => processAndDrawChart(false));
+            showHumCheckbox.addEventListener('change', () => processAndDrawChart(false));
+            
             resetZoomBtn.addEventListener('click', () => {
                 if (chart) {
                     chart.resetZoom();
