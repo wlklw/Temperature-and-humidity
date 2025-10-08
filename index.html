@@ -209,7 +209,10 @@
         
         <div id="status" class="status info">請上傳CSV檔案開始分析</div>
         
-        <div class="chart-container"><canvas id="chart" width="5200" height="2000"></canvas></div>
+        <div class="chart-container">
+    <canvas id="chart"></canvas>
+</div>
+
 
         <div id="statsContainer" class="stats-container" style="display: none;">
             <h2>📊 數據摘要 (目前圖表範圍)</h2>
@@ -247,67 +250,55 @@
 
             // --- Chart Initialization ---
             function initChart() {
-                chart = new Chart(ctx, {
-                    type: 'line',
-                    data: { datasets: [] },
-                    options: {
-                        responsive: false,
-                        maintainAspectRatio: false,
-                        interaction: { intersect: false, mode: 'index' },
-                        plugins: {
-                            title: { display: true, text: '溫濕度變化比較圖', font: { size: 18, weight: 'bold' } },
-                            legend: { display: true, position: 'top' },
-                            zoom: {
-                                pan: {
-                                    enabled: true,
-                                    mode: 'x',
-                                    modifierKey: null
-                                },
-                                zoom: {
-                                    wheel: { enabled: true },
-                                    pinch: { enabled: true },
-                                    mode: 'x'
-                                },
-                                onZoomComplete: updateStatistics,
-                                onPanComplete: updateStatistics
-                            }
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: { datasets: [] },
+        options: {
+            responsive: true,                    // 保持響應式，畫面不會亂
+            maintainAspectRatio: false,          // 可自由伸縮
+            interaction: { intersect: false, mode: 'index' },
+            plugins: {
+                title: { display: true, text: '溫濕度變化比較圖', font: { size: 18, weight: 'bold' } },
+                legend: { display: true, position: 'top' },
+                zoom: {
+                    pan: { enabled: true, mode: 'x', modifierKey: null },
+                    zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
+                    onZoomComplete: updateStatistics,
+                    onPanComplete: updateStatistics
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        tooltipFormat: 'YYYY/MM/DD HH:mm',
+                        displayFormats: {
+                            hour: 'YYYY/MM/DD',
+                            day: 'YYYY/MM/DD',
+                            week: 'YYYY/MM/DD',
+                            month: 'YYYY/MM/DD',
+                            year: 'YYYY/MM/DD'
                         },
-                        scales: {
-                            x: {
-                                type: 'time',
-                                time: {
-                                    tooltipFormat: 'YYYY/MM/DD HH:mm',
-                                    displayFormats: {
-                                        hour: 'YYYY/MM/DD',
-                                        day: 'YYYY/MM/DD',
-                                        week: 'YYYY/MM/DD',
-                                        month: 'YYYY/MM/DD',
-                                        year: 'YYYY/MM/DD'
-                                    },
-                                    unit: 'day',
-                                    stepSize: 1
-                                },
-                                title: { display: true, text: '時間' }
-                            },
-                            yTemp: { 
-                                type: 'linear', 
-                                display: true, 
-                                position: 'left', 
-                                title: { display: true, text: '溫度 (°C)', color: 'var(--temp-color)' }, 
-                                ticks: { color: 'var(--temp-color)' } 
-                            },
-                            yHum: { 
-                                type: 'linear', 
-                                display: true, 
-                                position: 'right', 
-                                title: { display: true, text: '濕度 (%)', color: 'var(--hum-color)' }, 
-                                ticks: { color: 'var(--hum-color)' }, 
-                                grid: { drawOnChartArea: false } 
-                            }
-                        }
-                    }
-                });
+                        unit: 'day',
+                        stepSize: 1
+                    },
+                    title: { display: true, text: '時間' }
+                },
+                yTemp: { 
+                    type: 'linear', display: true, position: 'left',
+                    title: { display: true, text: '溫度 (°C)', color: 'var(--temp-color)' },
+                    ticks: { color: 'var(--temp-color)' }
+                },
+                yHum: { 
+                    type: 'linear', display: true, position: 'right',
+                    title: { display: true, text: '濕度 (%)', color: 'var(--hum-color)' },
+                    ticks: { color: 'var(--hum-color)' }, grid: { drawOnChartArea: false }
+                }
             }
+        }
+    });
+}
+
             
             function initDatepickers() {
     const options = {
@@ -530,13 +521,15 @@
 
             function exportChart() {
     const canvas = document.getElementById('chart');
-    // 不要動 canvas.width / canvas.height！
+    // 根據目前顯示解析度自動放大，例如 3倍，解析度最高可自訂
+    const scale = 3;
     const newCanvas = document.createElement('canvas');
-    newCanvas.width = canvas.width;    // 直接用目前的解析度
-    newCanvas.height = canvas.height;
+    newCanvas.width = canvas.width * scale;     // 注意 canvas.width 是顯示中像素
+    newCanvas.height = canvas.height * scale;
     const newCtx = newCanvas.getContext('2d');
-    newCtx.fillStyle = '#FFFFFF';
+    newCtx.fillStyle = '#FFFFFF';               // 白底
     newCtx.fillRect(0, 0, newCanvas.width, newCanvas.height);
+    // 把原圖表畫布原始圖案“放大複製”到新canvas
     newCtx.drawImage(canvas, 0, 0, newCanvas.width, newCanvas.height);
     const image = newCanvas.toDataURL('image/jpeg', 1.0);
     const link = document.createElement('a');
@@ -544,6 +537,7 @@
     link.download = `溫濕度分析圖_${new Date().toISOString().slice(0,10)}.jpg`;
     link.click();
 }
+
 
             
             // --- Attach Event Listeners ---
