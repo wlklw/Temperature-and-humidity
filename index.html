@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>專業版溫濕度數據分析儀 (穩定版)</title>
+    <title>溫濕度數據分析</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-moment/1.0.1/chartjs-adapter-moment.min.js"></script>
@@ -528,17 +528,18 @@
 
             function exportChart() {
                 const canvas = document.getElementById('chart');
+                const scale = 3; 
                 const newCanvas = document.createElement('canvas');
                 newCanvas.width = canvas.width; newCanvas.height = canvas.height;
                 const newCtx = newCanvas.getContext('2d');
                 newCtx.fillStyle = '#FFFFFF'; newCtx.fillRect(0, 0, newCanvas.width, newCanvas.height);
-                newCtx.drawImage(canvas, 0, 0);
-                const image = newCanvas.toDataURL('image/jpeg', 1.0);
-                const link = document.createElement('a');
-                link.href = image;
-                link.download = `溫濕度分析圖_${new Date().toISOString().slice(0,10)}.jpg`;
-                link.click();
-            }
+                 newCtx.drawImage(canvas, 0, 0, newCanvas.width, newCanvas.height);
+    const image = newCanvas.toDataURL('image/jpeg', 1.0);
+    const link = document.createElement('a');
+    link.href = image;
+    link.download = `溫濕度分析圖_${new Date().toISOString().slice(0,10)}.jpg`;
+    link.click();
+}
             
             // --- Attach Event Listeners ---
             fileInput.addEventListener('change', async function(e) {
