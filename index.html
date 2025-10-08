@@ -242,6 +242,8 @@
             const showTempCheckbox = document.getElementById('showTemp');
             const showHumCheckbox = document.getElementById('showHum');
             const ctx = document.getElementById('chart').getContext('2d');
+            ctx.canvas.width = 1600;       // 原本 CSS 也要跟著調大
+            ctx.canvas.height = 1200;
 
             // --- Chart Initialization ---
             function initChart() {
