@@ -530,6 +530,8 @@
 
             function exportChart() {
                 const canvas = document.getElementById('chart');
+                canvas.width = 4000;
+                canvas.height = 2000;
                 const scale = 4; 
                 const newCanvas = document.createElement('canvas');
                 newCanvas.width = canvas.width; newCanvas.height = canvas.height;
